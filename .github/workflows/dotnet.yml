@@ -37,6 +37,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
+          #toma el repositorio y lo pone con minusculas
           REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
 
           # Construir la imagen Docker usando el Dockerfile
@@ -59,6 +60,8 @@ jobs:
           port: 22
           script: |
             echo "Conexión exitosa al VPS"
+
+            REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
 
             docker login ghcr.io -u "yonathanprdev" -p ${{ secrets.TOKEN}} 
             docker pull ghcr.io/${{ github.repository }}:latest
