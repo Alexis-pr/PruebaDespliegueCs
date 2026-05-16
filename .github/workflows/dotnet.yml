@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+    
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -36,11 +37,13 @@ jobs:
 
       - name: Build and push Docker image
         run: |
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+
           # Construir la imagen Docker usando el Dockerfile
-          docker build -f Dockerfile -t ghcr.io/${{ github.repository }}:latest .
+          docker build -f Dockerfile -t ghcr.io/$REPO_LOWER:latest .
 
           # Subir la imagen construida a GHCR
-          docker push ghcr.io/${{ github.repository }}:latest
+          docker push ghcr.io/$REPO_LOWER:latest
 
   deploy:
     needs: build-and-push
