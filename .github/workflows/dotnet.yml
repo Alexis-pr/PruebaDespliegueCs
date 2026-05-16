@@ -38,7 +38,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           #toma el repositorio y lo pone con minusculas
-          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | ${github.repository} | "${github.event.repository.name}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
 
           # Construir la imagen Docker usando el Dockerfile
           docker build -f Dockerfile -t ghcr.io/$REPO_LOWER:latest .
