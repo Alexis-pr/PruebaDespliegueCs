@@ -4,24 +4,32 @@ on:
   push:
     branches:
       - main
+
 permissions:
   packages: write
   contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/alexis-pr/prueba-despliegue-cs:latest
+  CONTAINER_NAME: prueba-despliegue-cs
+
 jobs:
+
   build-and-push:
+
     runs-on: ubuntu-latest
     environment: production
+
     steps:
-    
+
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2  # Configurar el soporte para Buildx, que permite construir imágenes de manera optimizada
+        uses: docker/setup-buildx-action@v3
 
       - name: Cache Docker layers
-        uses: actions/cache@v4  # Habilitar el caching para las capas de Docker y evitar que se reconstruyan siempre
-
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
@@ -29,46 +37,51 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2  # Hacer login en GHCR usando las credenciales de GitHub
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} 
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build Docker image
         run: |
-          #toma el repositorio y lo pone con minusculas
-          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          docker build -f Dockerfile -t $IMAGE_NAME .
 
-          # Construir la imagen Docker usando el Dockerfile
-          docker build -f Dockerfile -t ghcr.io/$REPO_LOWER:latest .
-
-          # Subir la imagen construida a GHCR
-          docker push ghcr.io/$REPO_LOWER:latest
+      - name: Push Docker image
+        run: |
+          docker push $IMAGE_NAME
 
   deploy:
+
     needs: build-and-push
+
     runs-on: ubuntu-latest
     environment: production
+
     steps:
+
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v0.1.9
+        uses: appleboy/ssh-action@v1.0.3
+
         with:
-          host: 157.180.40.190
+          host: 192.168.1.1
           username: root
           key: ${{ secrets.SSH_KEY }}
           port: 22
-          script: |
-            
 
-            REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | ${github.repository} | "${github.event.repository.name}" | tr '[:upper:]' '[:lower:]')
+          script: |
+
             echo "Conexión exitosa al VPS"
 
-            docker login ghcr.io -u "yonathanprdev" -p ${{ secrets.TOKEN}} 
+            echo "${{ secrets.TOKEN }}" | docker login ghcr.io -u "yonathanprdev" --password-stdin
+
             docker pull ghcr.io/alexis-pr/prueba-despliegue-cs:latest
+
             docker stop prueba-despliegue-cs || true
+
             docker rm prueba-despliegue-cs || true
 
-            docker run -d --name ${{ github.event.repository.name }} \
-                         -p 8083:8080 \
-                         ghcr.io/${{ github.repository }}:latest
+            docker run -d \
+              --name prueba-despliegue-cs \
+              -p 8083:8080 \
+              ghcr.io/alexis-pr/prueba-despliegue-cs:latest
